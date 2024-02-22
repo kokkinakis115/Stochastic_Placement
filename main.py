@@ -8,11 +8,12 @@ Created on Fri Feb 16 16:02:34 2024
 import numpy as np
 import functions
 import statistics
-from Classes import Application, BSM_predictor, Infrastucture, Microservice, Node, Simulation
+from simulation.simulation import Simulation
+from models.predictor import BSM_predictor
 
 # Global Variables
 
-workloads = np.loadtxt("./workloads.csv", delimiter=',')
+workloads = np.loadtxt("./alibaba/workloads.csv", delimiter=',')
 workloads = workloads/100
 workload_volatility_array = [functions.calculate_volatility(workload) for workload in workloads]
 workload_averages_array = [statistics.median(workload) for workload in workloads]
@@ -38,8 +39,9 @@ def main():
                      threshold=0.2,
                      number_of_applications=2,
                      number_of_edge_nodes=2,
-                     number_of_fog_nodes=1)
-    sim._initialize_simulation(workloads, vol_dict)
+                     number_of_fog_nodes=1,
+                     number_of_src_nodes=10)
+    sim._initialize_simulation(workloads, vol_dict, network=None)
     # sim.infrastructure.nodes_list[1]._assign_task(cpu_req=1.0, app_id=0, microservice_id=0)
     print(sim._check_utilization())
     
