@@ -21,21 +21,14 @@ class Simulation:
         self.number_of_infr_nodes = number_of_edge_nodes + number_of_fog_nodes + 1
         self.number_of_src_nodes = number_of_src_nodes
 
-    def _initialize_simulation(self, workloads, vol_dict, network = None):
+    def _initialize_simulation(self, workloads, vol_dict, network = []):
 
-        if network == None:
-            total_nodes = self.number_of_edge_nodes + self.number_of_fog_nodes + 1
-            
-            infrastructure = Infrastucture(total_nodes, self.number_of_edge_nodes, self.number_of_fog_nodes, self.number_of_src_nodes)
-            infrastructure._create_adj_matrix([])
-            infrastructure._create_infrastructure()
-            self.infrastructure = infrastructure
-        else:
-            total_nodes = network.number_of_nodes()
-            # TODO
-            # infrastructure = Infrastucture(total_nodes, self.number_of_edge_nodes, self.number_of_fog_nodes)
-            # infrastructure._create_adj_matrix(nx.adjacency_matrix(network, weight='delay'))
-            # infrastructure._create_infrastructure()
+        total_nodes = self.number_of_edge_nodes + self.number_of_fog_nodes + 1
+        
+        infrastructure = Infrastucture(total_nodes, self.number_of_edge_nodes, self.number_of_fog_nodes, self.number_of_src_nodes)
+        infrastructure._create_adj_matrix(network)
+        infrastructure._create_infrastructure()
+        self.infrastructure = infrastructure
     
         applications_stack = deque()
 

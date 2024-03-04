@@ -23,7 +23,7 @@ def read_network(file, cpu=None, mem=None, dr=None):
         raise ValueError("{} is not a GraphML file".format(file))
     network = nx.read_graphml(file, node_type=int)
 
-    # set nodes
+    # Set nodes
     node_ids = ["pop{}".format(n) for n in network.nodes]  # add "pop" to node index (eg, 1 --> pop1)
     # node_ids_dict = [n: for n in network.nodes]
     # nx.set_node_attributes(network, node_cpu_dict, 'cpu')
@@ -37,7 +37,7 @@ def read_network(file, cpu=None, mem=None, dr=None):
         
         nx.set_node_attributes(network, node_cpu_dict, 'cpu')
         nx.set_node_attributes(network, node_mem_dict, 'mem')
-    # else try to read them from the the node attributes (ie, graphml)
+    # Else try to read them from the the node attributes (ie, graphml)
     
     else:
         cpu = nx.get_node_attributes(network, 'cpu')
@@ -54,7 +54,7 @@ def read_network(file, cpu=None, mem=None, dr=None):
         except KeyError:
             raise ValueError("No CPU or mem. specified for {} (as cmd argument or in graphml)".format(file))
 
-    # set links
+    # Set links
     link_ids = [("pop{}".format(e[0]), "pop{}".format(e[1])) for e in network.edges]
     
     
@@ -74,7 +74,7 @@ def read_network(file, cpu=None, mem=None, dr=None):
         except KeyError:
             raise ValueError("No link data rate specified for {} (as cmd argument or in graphml)".format(file))
 
-    # calculate link delay based on geo positions of nodes; duplicate links for bidirectionality
+    # Calculate link delay based on geo positions of nodes; duplicate links for bidirectionality
     link_delay = {}
     link_delay_dict = {}
     for e in network.edges(data=True):
@@ -95,7 +95,7 @@ def read_network(file, cpu=None, mem=None, dr=None):
     
     nx.set_edge_attributes(network, link_delay_dict, 'delay')
     
-    # add reversed links for bidirectionality
+    # Add reversed links for bidirectionality
     for e in network.edges:
         e = ("pop{}".format(e[0]), "pop{}".format(e[1]))
         e_reversed = (e[1], e[0])
