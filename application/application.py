@@ -27,7 +27,7 @@ class Application: # application/workload class, contains adjacency matrix of DA
                 if (i == j):
                     dag_matrix[i][j] = 0
                 else:
-                    dag_matrix[i][j] = random.choice([0, np.random.uniform(1,6)])
+                    dag_matrix[i][j] = random.choice([0, np.random.uniform(0.5,5)])
         self.dag_matrix = dag_matrix    
 
     def _create_ms(self, workloads, vol_dict):

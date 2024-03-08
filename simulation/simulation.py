@@ -21,11 +21,13 @@ class Simulation:
         self.number_of_infr_nodes = number_of_edge_nodes + number_of_fog_nodes + 1
         self.number_of_src_nodes = number_of_src_nodes
 
-    def _initialize_simulation(self, workloads, vol_dict, network = []):
+    def _initialize_simulation(self, workloads, vol_dict, network = None):
 
         total_nodes = self.number_of_edge_nodes + self.number_of_fog_nodes + 1
         
         infrastructure = Infrastucture(total_nodes, self.number_of_edge_nodes, self.number_of_fog_nodes, self.number_of_src_nodes)
+        if type(network) == type(None):
+            network = []
         infrastructure._create_adj_matrix(network)
         infrastructure._create_infrastructure()
         self.infrastructure = infrastructure

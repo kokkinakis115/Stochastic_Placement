@@ -88,8 +88,8 @@ class BSM_predictor:
 
         # num_of_time_slots = len(workload) // self.time_slot_duration
 
-        dates1 = pd.date_range(start='00:00', periods=len(workload), freq='1s')
-        dates2 = pd.date_range(start='00:00', periods=len(self.predictions_time_series), freq='1s')
+        dates1 = pd.date_range(start='00:00', periods=len(workload), freq='5min')
+        dates2 = pd.date_range(start='00:00', periods=len(self.predictions_time_series), freq='5min')
 
         data = pd.DataFrame({'date': dates1, 'value': workload})
 
@@ -97,15 +97,17 @@ class BSM_predictor:
         data.set_index('date', inplace=True)
 
         # Plot the time-series data
-        plt.plot(data.index, data['value'], label = "Workload")
-        plt.plot(dates2, self.predictions_time_series, label = "Predictions")
+        plt.figure(dpi=1200)
+        plt.plot(data.index, data['value'], label = "CPU Workload")
+        plt.plot(dates2, self.predictions_time_series, 'g--', label = "Model Predictions")
         # plt.plot(data.index, self.maxima_time_series, label = "Time Slot Max")
         plt.xlabel('Time')
-        plt.ylabel('Volume of Workloads')
+        plt.ylabel('Number of CPUs')
         plt.xticks(rotation = 45)
-        plt.gcf().autofmt_xdate()
+        plt.title(f'Parameters: Δ = {self.threshold*100}%, Timeslot Duration = {self.time_slot_duration*5}min')
         # plt.title(f'Workload Prediction for {workload.users} users in a timespan of {workload.size} minutes\n T = {self.time_slot_duration}, r = {self.intr}, M = {self.lookback}, t = {self.texp}')
         plt.legend()
+        plt.savefig("plot.png", bbox_inches='tight')
         plt.show()
 
         return

@@ -15,7 +15,7 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
         self.src = src
 
     def _create_adj_matrix(self, adj_matrix): #creates adjacency matrix for graph
-        if (adj_matrix.size != 0 and adj_matrix.shape[0] == self.num_of_nodes):
+        if (len(adj_matrix) != 0): # and adj_matrix.shape[0] == self.num_of_nodes
             # generate matrix
             matrix = np.zeros((self.num_of_nodes, self.num_of_nodes), dtype=np.int8)
             for i in range(self.edge[0], self.edge[1]):

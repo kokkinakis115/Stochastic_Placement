@@ -3,6 +3,7 @@ import random
 import numpy as np
 import pandas as pd
 from collections import deque
+import os
 
 # def change_to_inf(G):
 #     new_arr = np.zeros(G.shape, dtype=np.int32)
@@ -28,7 +29,8 @@ from collections import deque
 #     return graph        
 
 def generate_network():
-    real_nodes = pd.read_csv('../Topology.csv')
+    print(os.getcwd())
+    real_nodes = pd.read_csv('parameters/Topology.csv')
     real_nodes = real_nodes.iloc[::-1]
     
     NUM_OF_EDGE_NODES = 20
@@ -46,12 +48,20 @@ def generate_network():
     longitude_min = 23.67
     longitude_max = 23.86
     
+    node_df = pd.DataFrame(real_nodes)
+    
     edge_points = deque([])
     for i in range(NUM_OF_EDGE_NODES):
         X = random.uniform(latitude_min, latitude_max)
         Y = random.uniform(longitude_min, longitude_max)
         edge_points.append([X, Y])
         
+    for i, edge_node in enumerate(edge_points):
+        # df = pd.DataFrame({'Name': ["Edge Node #" + str(i)], "Type": ["Edge"], "Latitude": [edge_node[0]], "Longitude": [edge_node[1]]})
+        # node_df = node_df.append(df)
+        node_df.loc[len(node_df.index)] = ["Edge Node #" + str(i), "Edge", edge_node[0], edge_node[1]]
+    node_df.to_csv('parameters/Final_Topology.csv', index=False)
+    
     # Find nearest fog nodes
     links = deque([])
     distances_deque = deque([])
