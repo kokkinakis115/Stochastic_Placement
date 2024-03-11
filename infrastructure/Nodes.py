@@ -14,17 +14,17 @@ import numpy as np
 
 class Node: # node class, we assume each node contains 1 machine, 3 types of nodes (edge, fog, cioud)
 
-    def __init__(self, id, layer, cpu_capacity, ram_capacity, monetary_cost, src_nodes):
+    def __init__(self, id, layer, cpu_capacity, ram_capacity, latency, monetary_cost, src_nodes):
         self.id = id
         self.layer = layer
         self.total_cpu_capacity = cpu_capacity
         self.remaining_cpu_capacity = cpu_capacity
         self.total_ram_capacity = ram_capacity
         self.remaining_ram_capacity = ram_capacity
+        self.latency = latency
         self.monetary_cost = monetary_cost
         self.emergency_allocation_cost = 10*monetary_cost
         self.src_nodes_max_delays = [int(np.random.uniform(3,7)) if layer == 'Edge' else 100 for i in range(src_nodes)]
-        
         self.ms_stack = deque()
 
     def __repr__(self):

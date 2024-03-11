@@ -58,8 +58,9 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
             cpu_capacity = int(np.random.uniform(4,9))
             ram_capacity = int(np.random.uniform(4,17))
             monetary_cost = np.random.uniform(2,3)
+            latency = np.random.uniform(2, 10)
             
-            edge_node = Node(id = i, layer = 'Edge', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, monetary_cost = monetary_cost, src_nodes=self.src)
+            edge_node = Node(id = i, layer = 'Edge', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
             nodes_list.append(edge_node)
 
         for i in range(self.fog[1]-self.edge[1]):
@@ -67,15 +68,17 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
             cpu_capacity = int(np.random.uniform(80,121))
             ram_capacity = int(np.random.uniform(120,201))
             monetary_cost = np.random.uniform(1,1.5)
+            latency = np.random.uniform(10, 50)
             
-            fog_node = Node(id = i + self.edge[1], layer = 'Fog', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, monetary_cost = monetary_cost, src_nodes=self.src)
+            fog_node = Node(id = i + self.edge[1], layer = 'Fog', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
             nodes_list.append(fog_node)
 
         cpu_capacity = 500
         ram_capacity = 1000
         monetary_cost = 0.5
+        latency = 75
         
-        cloud_node = Node(id = self.num_of_nodes-1, layer = 'Cloud', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, monetary_cost = monetary_cost, src_nodes=self.src)
+        cloud_node = Node(id = self.num_of_nodes-1, layer = 'Cloud', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
         nodes_list.append(cloud_node)
         
         self.nodes_list = nodes_list

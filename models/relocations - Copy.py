@@ -231,8 +231,8 @@ json_input = '''
   "execution_plugin": "MarsalComputeNode",
   "parameters": {
     "telemetry": [
-      {"cpu": "15.54999999795109", "ip": "23.23.23.7", "latency": "1.112", "monetarycost": "1.5", "name": "py-k8s-master"},
-      {"cpu": "6.8500000005587935", "ip": "23.23.23.5", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-1"},
+      {"cpu": "30.54999999795109", "ip": "23.23.23.7", "latency": "1.112", "monetarycost": "1.5", "name": "py-k8s-master"},
+      {"cpu": "10.8500000005587935", "ip": "23.23.23.5", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-1"},
       {"cpu": "6.399999998975545", "ip": "23.23.23.3", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-2"}
     ]
   }
@@ -243,7 +243,7 @@ data = json.loads(json_input)
 telemetry_data = data["parameters"]["telemetry"]
 
 # Process and prepare the telemetry data
-cpuCosts = {node["name"]: float(node["cpu"]) for node in telemetry_data}
+cpuCosts = {node["name"]: float(node["monetarycost"]) for node in telemetry_data}
 latencies = {i: float(node["latency"]) for i, node in enumerate(telemetry_data)}
 weights = [1, 1]  # Adjust based on requirements
 node_index = {node["name"]: i for i, node in enumerate(telemetry_data)}
@@ -314,32 +314,37 @@ workloadAllocations = [[None for _ in range(numFunctions)] for _ in range(numWor
 
 max_latency = 100
 
-# Run the allocation using backtracking for each workload
-for i in range(numWorkloads):
-    node_resource_availability_copy = node_resource_availability.copy()  # Make a copy to not affect the original during backtracking
-    if backtrack_allocation(i, 0, node_resource_availability_copy, workloads, workload_latencies, node_index, workloadAllocations, max_latency):
-        print(f"Workload {i} allocated successfully.")
-    else:
-        print(f"Failed to allocate all microservices for workload {i} within constraints.")
+# # Run the allocation using backtracking for each workload
+# for i in range(numWorkloads):
+#     node_resource_availability_copy = node_resource_availability.copy()  # Make a copy to not affect the original during backtracking
+#     if backtrack_allocation(i, 0, node_resource_availability_copy, workloads, workload_latencies, node_index, workloadAllocations, max_latency):
+#         print(f"Workload {i} allocated successfully.")
+#     else:
+#         print(f"Failed to allocate all microservices for workload {i} within constraints.")
 
+# # Output the final assignment
+# for i in range(numWorkloads):
+#     for j in range(numFunctions):
+#         print(f"Final allocation: Workload {i}, Function {j} is assigned to {workloadAllocations[i][j]}")
+
+
+
+for i in range(numWorkloads):
+    for j in range(numFunctions):
+        suitableNodes = find_suitable_nodes(node_resource_availability, sortedWorkloads[i, j])
+        if suitableNodes:
+            min_cost, min_cost_node = min_weighted_cost(suitableNodes, cpuCosts, latencies, weights, node_index)
+            node_resource_availability = allocate_resources(node_resource_availability, min_cost_node, sortedWorkloads[i, j])
+            workloadAllocations[i][j] = min_cost_node
+        else:
+            print(f"No suitable node found for Workload {i}, Function {j}.")
+            break  # Break if we cannot find a node for a function
+            
 # Output the final assignment
 for i in range(numWorkloads):
     for j in range(numFunctions):
         print(f"Final allocation: Workload {i}, Function {j} is assigned to {workloadAllocations[i][j]}")
 
-
-
-
-# for i in range(numWorkloads):
-#     for j in range(numFunctions):
-#         suitableNodes = find_suitable_nodes(node_resource_availability, sortedWorkloads[i, j])
-#         if suitableNodes:
-#             min_cost, min_cost_node = min_weighted_cost(suitableNodes, cpuCosts, latencies, weights, node_index)
-#             node_resource_availability = allocate_resources(node_resource_availability, min_cost_node, sortedWorkloads[i, j])
-#             workloadAllocations[i][j] = min_cost_node
-#         else:
-#             print(f"No suitable node found for Workload {i}, Function {j}.")
-#             break  # Break if we cannot find a node for a function
 
 # Simulate dynamic changes and calculate relocations
 
@@ -351,11 +356,11 @@ weights = {'cost': 1, 'latency': 1, 'relocation': 2}  # Example: prioritize mini
 #relocations = handle_dynamic_changes(node_resource_availability, sortedWorkloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations)
 #print(f"Total microservice relocations due to dynamic changes: {relocations}")
 
-relocations = handle_dynamic_changes_with_optimization(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
+# relocations = handle_dynamic_changes_with_optimization(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
 
-print(f"Total microservice relocations due to dynamic changes: {relocations}")
-for i in range(numWorkloads):
-    for j in range(numFunctions):
-        print(f"Final allocation: Workload {i}, Function {j} is assigned to {workloadAllocations[i][j]}")
+# print(f"Total microservice relocations due to dynamic changes: {relocations}")
+# for i in range(numWorkloads):
+#     for j in range(numFunctions):
+#         print(f"Final allocation: Workload {i}, Function {j} is assigned to {workloadAllocations[i][j]}")
 
 
