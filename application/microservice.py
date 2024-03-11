@@ -67,7 +67,7 @@ class Microservice: #microservice class, time_series is created upon initializat
         return
 
     def _plot_usage(self):
-        dates = pd.date_range(start='00:00', periods=self.duration*3600+1, freq='1s')
+        dates = pd.date_range(start='00:00', periods=self.duration, freq='1s')
 
         data = pd.DataFrame({'date': dates, 'value': self.usage_time_series})
         

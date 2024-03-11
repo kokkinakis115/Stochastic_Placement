@@ -28,26 +28,29 @@ def main():
 
     # threshold_dict = {('low', 'low'): 0.15, ('medium', 'low'): 0.35, ('high', 'low'): 0.15, ('low', 'medium'): 0.25, ('medium', 'medium'): 0.5, ('high', 'medium'): 0.25, ('low', 'high'): 0.25, ('medium', 'high'): 0.7, ('high', 'high'): 0.4} 
 
-    network_arr = generate_network()
+    # network_arr = generate_network()
+    network_arr = None
+    weights = {'cost': 1, 'latency': 1, 'relocation': 2}  # Example: prioritize minimizing relocations higher
 
-    predictor = BSM_predictor(intr=0.00,
-                              texp=6,
+    predictor = BSM_predictor(intr=0.0,
+                              texp=12,
                               lookback_duration=6,
                               threshold=0.2)
     
     sim = Simulation(simulation_duration=144,
-                     timeslot_duration=6,
-                     lookforward_duration=6,
+                     timeslot_duration=12,
+                     lookforward_duration=12,
                      lookback_duration=6,
                      threshold=0.2,
-                     number_of_applications=2,
-                     number_of_edge_nodes=20,
-                     number_of_fog_nodes=6,
-                     number_of_src_nodes=10)
+                     number_of_applications=5,
+                     number_of_edge_nodes=5,
+                     number_of_fog_nodes=3,
+                     number_of_src_nodes=10,
+                     weights = weights
+                     )
     sim._initialize_simulation(workloads, vol_dict, network=network_arr)
-    # sim.infrastructure.nodes_list[1]._assign_task(cpu_req=1.0, app_id=0, microservice_id=0)
-    print(sim._check_utilization())
-    
+    sim_overview = sim._run_simulation(predictor, starting_req_dict)
+    print(sim_overview['utilization_per_timeslot'])
     # print(sim.applications_stack[0].ms_stack)
     
 if __name__ == "__main__":

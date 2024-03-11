@@ -51,4 +51,5 @@ class Node: # node class, we assume each node contains 1 machine, 3 types of nod
             return False
 
     def _reset_node(self):
-        self.ms_stack.clear()
+        self.ms_stack = deque()
+        self.remaining_cpu_capacity = self.total_cpu_capacity
