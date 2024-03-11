@@ -56,18 +56,17 @@ class Microservice: #microservice class, time_series is created upon initializat
             if (intensity != 'low'):
                 time_series += sigma * np.random.randn(duration_in_hours*3600+1) + mu
             
-            time_series = np.clip(time_series, 0.001, 1000)     
+            time_series = np.clip(time_series, 0.001, 1000) 
         
         self.usage_time_series = time_series[3600:]
         return
     
     def _create_usage2(self, workloads, vol_dict):
-        
         self.usage_time_series = functions.produce_workload(intensity=self.intensity, vol=self.volatility, workloads=workloads, vol_dict=vol_dict)
         return
 
     def _plot_usage(self):
-        dates = pd.date_range(start='00:00', periods=self.duration*3600+1, freq='1s')
+        dates = pd.date_range(start='00:00', periods=self.duration, freq='1s')
 
         data = pd.DataFrame({'date': dates, 'value': self.usage_time_series})
         

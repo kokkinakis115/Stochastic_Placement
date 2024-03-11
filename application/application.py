@@ -23,11 +23,11 @@ class Application: # application/workload class, contains adjacency matrix of DA
     def _create_DAG(self):
         dag_matrix = np.zeros((self.num_of_ms, self.num_of_ms), dtype=np.int8)
         for i in range(self.num_of_ms):
-            for j in range(i, self.num_of_ms):
+            for j in range(i, self.num_of_ms    ):
                 if (i == j):
                     dag_matrix[i][j] = 0
                 else:
-                    dag_matrix[i][j] = random.choice([0, np.random.uniform(0.5,5)])
+                    dag_matrix[i][j] = random.choice([0, np.random.uniform(5, 10)])
         self.dag_matrix = dag_matrix    
 
     def _create_ms(self, workloads, vol_dict):

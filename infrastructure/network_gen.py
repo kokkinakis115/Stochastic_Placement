@@ -29,7 +29,7 @@ import os
 #     return graph        
 
 def generate_network():
-    print(os.getcwd())
+    # print(os.getcwd())
     real_nodes = pd.read_csv('parameters/Topology.csv')
     real_nodes = real_nodes.iloc[::-1]
     

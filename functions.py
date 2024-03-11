@@ -112,3 +112,18 @@ def compute_strike_price2(delta, texp, cp, vol, intr, spot):
     additive = 0.5*vol**2*texp
     predicted_strike = spot*np.exp(exponent2+additive)
     return predicted_strike
+
+def add_arrays(array1, array2):
+    if array1.shape > array2.shape:
+        res = array1.copy()
+        for i in range(array2.shape[0]):
+            for j in range(array2.shape[1]):
+                res[i][j] += array2[i][j]
+    else:
+        res = array2.copy()
+        for i in range(array1.shape[0]):
+            for j in range(array1.shape[1]):
+                res[i][j] += array1[i][j]
+    return res
+        
+    
