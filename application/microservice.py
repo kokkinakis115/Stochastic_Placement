@@ -62,7 +62,7 @@ class Microservice: #microservice class, time_series is created upon initializat
         return
     
     def _create_usage2(self, workloads, vol_dict):
-        self.usage_time_series = functions.produce_workload(intensity=self.intensity, vol=self.volatility, workloads=workloads, vol_dict=vol_dict)
+        self.usage_time_series = np.flip(functions.produce_workload(intensity=self.intensity, vol=self.volatility, workloads=workloads, vol_dict=vol_dict))
         return
 
     def _plot_usage(self):

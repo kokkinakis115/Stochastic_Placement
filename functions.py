@@ -6,24 +6,13 @@ Created on Fri Feb 16 15:59:10 2024
 """
 
 import numpy as np
-# import pyfeng as pf
 import matplotlib.pyplot as plt
 import pandas as pd
 import random
-# import time
-# import os
 import statistics
-# from statistics import mean
-# from scipy.stats import norm
-# import seaborn as sns
-# from warnings import filterwarnings
 import math
-# import matplotlib.pyplot as plt
-# import networkx as nx
 from collections import deque
-# from scipy.special import ndtri
 from statistics import NormalDist
-
 
 
 def create_random_scheme(simulation):
@@ -70,7 +59,7 @@ def calculate_volatility(time_series):
 
 def produce_workload(intensity, vol, workloads, vol_dict):
     
-    intensity_dict = {'low': 1, 'medium': 5, 'high': 7}
+    intensity_dict = {'low': 2, 'medium': 7, 'high': 10}
     wl = np.zeros(len(workloads[0]))
     for i in range(intensity_dict[intensity]):
         wl += workloads[random.choice(vol_dict[vol])]

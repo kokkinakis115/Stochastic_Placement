@@ -76,7 +76,7 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
         cpu_capacity = 500
         ram_capacity = 1000
         monetary_cost = 0.5
-        latency = 75
+        latency = 50
         
         cloud_node = Node(id = self.num_of_nodes-1, layer = 'Cloud', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
         nodes_list.append(cloud_node)

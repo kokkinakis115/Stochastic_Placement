@@ -111,6 +111,7 @@ class Simulation:
      
     def _assign_scheme_to_nodes(self, assignment_scheme, prediction_scheme):
         
+        allocation_cost = 0
         for app_id in range(self.number_of_applications):
             for (ms_id, node_id) in enumerate(assignment_scheme[app_id]):
                 # print(node_id)
@@ -119,11 +120,12 @@ class Simulation:
                         print(f"Failed to allocate Microservice #{ms_id} of Application #{app_id} to Node #{node_id}")
                         print(f"Node Usage: {self.infrastructure.nodes_list[node_id].ms_stack}")
                         return False
-        return True
+                allocation_cost += self.infrastructure.nodes_list[node_id].monetary_cost
+        return allocation_cost
     
     
     def _get_resource_availability(self):
-        node_resource_availability = {f"{node.layer} Node #{node.id}": float(node.total_cpu_capacity) for node in self.infrastructure.nodes_list}
+        node_resource_availability = {f"{node.layer} Node #{node.id}": float(node.remaining_cpu_capacity) for node in self.infrastructure.nodes_list}
         return node_resource_availability
     
     def _get_node_index(self):
@@ -145,16 +147,25 @@ class Simulation:
     def _clear_nodes(self):
         for node in self.infrastructure.nodes_list:
             node._reset_node()
+            
+    def _calculate_utilization_percentage(self):
+        total_resources = 0 
+        for node in self.infrastructure.nodes_list:
+            total_resources += node.total_cpu_capacity
+        used_resources = 0 
+        for node in self.infrastructure.nodes_list:
+            used_resources += node.total_cpu_capacity - node.remaining_cpu_capacity
+        return used_resources/total_resources
         
     def _run_simulation(self, prediction_model, starting_req_dict):
         
-        print("App Demands: ", [app.intensity for app in self.applications_stack])
-        print("Number of microservices: ", [app.num_of_ms for app in self.applications_stack])
+        # print("App Demands: ", [app.intensity for app in self.applications_stack])
+        # print("Number of microservices: ", [app.num_of_ms for app in self.applications_stack])
         timeslot = 0
         period = 0
         
-        prediction_model = BSM_predictor(intr=0.00, texp=self.lookforward_duration, lookback_duration=self.lookback_duration, threshold=self.threshold)
-        simulation_overview = {'utilization_per_timeslot': [], 'violations_in_time_slot': [], 'number_of_relocations': []}
+        # prediction_model = BSM_predictor(intr=0.00, texp=self.lookforward_duration, lookback_duration=self.lookback_duration, threshold=self.threshold)
+        simulation_overview = {'utilization_per_timeslot': [], 'violations_in_time_slot': [], 'number_of_relocations': [], 'total_utilization_percentage': []}
         
         # Initialize by assigning microservices to nodes (use starting requirements dictionary for cpu requirements)
         workloads = self._produce_initial_scheme(starting_req_dict)
@@ -165,11 +176,15 @@ class Simulation:
         cpuCosts = self._get_cpu_costs()
         latencies = self._get_node_latencies()
         node_resource_availability = self._get_resource_availability()
-        latencyMatrix = self.infrastructure.adj_matrix
+        # latencyMatrix = self.infrastructure.adj_matrix
         app_latencies = self._get_app_latencies()
         workloadAllocations = [[None for _ in range(6)] for _ in range(self.number_of_applications)]
-        sortedIndices = np.argsort(np.max(workloads, axis=1))
-        sortedWorkloads = workloads[sortedIndices, :]
+        
+        # sortedIndices = np.argsort(np.max(workloads, axis=1))
+        # sortedWorkloads = workloads[sortedIndices, :]
+        
+        # print(workloads)
+        # print(sortedWorkloads)
         
         # initial_allocation_scheme = functions.create_random_scheme(self)
         
@@ -189,20 +204,23 @@ class Simulation:
         
         for i in range(self.number_of_applications):
             for j in range(6):
-                suitableNodes = ra.find_suitable_nodes(node_resource_availability, sortedWorkloads[i, j])
+                suitableNodes = ra.find_suitable_nodes(node_resource_availability, workloads[i, j])
                 if suitableNodes:
                     min_cost, min_cost_node = ra.min_weighted_cost(suitableNodes, cpuCosts, latencies, weights, node_index)
-                    node_resource_availability = ra.allocate_resources(node_resource_availability, min_cost_node, sortedWorkloads[i, j])
+                    node_resource_availability = ra.allocate_resources(node_resource_availability, min_cost_node, workloads[i, j])
                     workloadAllocations[i][j] = min_cost_node
                 else:
                     print(f"No suitable node found for Workload {i}, Function {j}.")
         workload_Allocations_int = [[node_index[i] for i in row] for row in workloadAllocations]
-        for i in range(self.number_of_applications):
-            for j in range(6):
-                print(f"Initial allocation: Application {i}, Microservice {j} is assigned to {workloadAllocations[i][j]}")
+        
+        # for i in range(self.number_of_applications):
+        #     for j in range(6):
+        #         print(f"Initial allocation: Application {i}, Microservice {j} is assigned to {workloadAllocations[i][j]}")
         
         
-        if not self._assign_scheme_to_nodes(assignment_scheme=workload_Allocations_int, prediction_scheme=workloads):
+        allocation_cost = self._assign_scheme_to_nodes(assignment_scheme=workload_Allocations_int, prediction_scheme=workloads)
+        
+        if not allocation_cost:
             print("Invalid Assignment Scheme")
             return simulation_overview
         
@@ -211,15 +229,14 @@ class Simulation:
         simulation_overview['utilization_per_timeslot'].append(self._check_utilization())
         simulation_overview['violations_in_time_slot'].append(0)
         simulation_overview['number_of_relocations'].append(0)
+        simulation_overview['total_utilization_percentage'].append(self._calculate_utilization_percentage())
 
         historical_relocations = {}
         violation_counter = 0
         number_of_relocations = 0
+        relocations = 0
         violations_stack = []
-        
-        # calculate initial cost # !!!
-        # timeslot_cost = 0
-        # total_cost = 0
+        total_cost = allocation_cost
 
         # Make predictions for each microservice and run RA algorithm / RUN FOR EVERY TICK (5 minutes for alibaba)
         while (period < self.simulation_duration):
@@ -235,27 +252,20 @@ class Simulation:
                 
                 workloads = self._produce_prediction_scheme(prediction_model, timeslot)
                 
-                # run allocation algorithm to produce assignment_scheme
-                # for i in range(self.number_of_applications):
-                #     node_resource_availability_copy = node_resource_availability.copy()  # Make a copy to not affect the original during backtracking
-                #     if ra.backtrack_allocation(i, 0, node_resource_availability_copy, workloads, app_latencies, node_index, workloadAllocations, max_latency):
-                #         print(f"Application {i} allocated successfully.")
-                #     else:
-                #         print(f"Failed to allocate all microservices for application {i} within constraints.")
-                # workload_Allocations_int = [[node_index[i] for i in row] for row in workloadAllocations]
-                
                 for i in range(self.number_of_applications):
                     for j in range(6):
-                        suitableNodes = ra.find_suitable_nodes(node_resource_availability, sortedWorkloads[i, j])
+                        suitableNodes = ra.find_suitable_nodes(node_resource_availability, workloads[i, j])
                         if suitableNodes:
                             min_cost, min_cost_node = ra.min_weighted_cost(suitableNodes, cpuCosts, latencies, weights, node_index)
-                            node_resource_availability = ra.allocate_resources(node_resource_availability, min_cost_node, sortedWorkloads[i, j])
+                            node_resource_availability = ra.allocate_resources(node_resource_availability, min_cost_node, workloads[i, j])
                             workloadAllocations[i][j] = min_cost_node
                         else:
                             print(f"No suitable node found for Workload {i}, Function {j}.")
                 workload_Allocations_int = [[node_index[i] for i in row] for row in workloadAllocations]
 
-                if not self._assign_scheme_to_nodes(assignment_scheme=workload_Allocations_int, prediction_scheme=workloads):
+                allocation_cost = self._assign_scheme_to_nodes(assignment_scheme=workload_Allocations_int, prediction_scheme=workloads)
+
+                if not allocation_cost:
                     print("Invalid Assignment Scheme")
                     return simulation_overview
 
@@ -264,13 +274,16 @@ class Simulation:
                 simulation_overview['utilization_per_timeslot'].append(self._check_utilization())
                 simulation_overview['violations_in_time_slot'].append(violation_counter)
                 simulation_overview['number_of_relocations'].append(number_of_relocations)
-
+                simulation_overview['total_utilization_percentage'].append(self._calculate_utilization_percentage())
+                
+                total_cost += allocation_cost
                 historical_relocations = {}
                 violation_counter = 0
                 number_of_relocations = 0
-                violations_stack = []
-            
+   
+
             # Detect instances of underutilization
+            violations_stack = []
             for node_id in range(len(self.infrastructure.nodes_list)):
                 node_usage = 0
                 for app_id, ms_id in self.infrastructure.nodes_list[node_id].ms_stack:
@@ -278,25 +291,35 @@ class Simulation:
                 if node_usage > self.infrastructure.nodes_list[node_id].total_cpu_capacity:
                     violation_counter += 1
                     if node_id not in violations_stack:
-                        print("Detected insufficient resources for Node #{node_id}")
+                        print(f"Detected insufficient resources for Node #{node_id} in Timeslot #{timeslot}")
                         violations_stack.append(node_id)
-            
+
             # Produce dynamic changes for microservices in nodes with violations
             dynamicChanges = []
             for node_id in violations_stack:
                 for ms in self.infrastructure.nodes_list[node_id].ms_stack:
                     dynamicChanges.append((ms[0], ms[1], self.applications_stack[ms[0]].ms_stack[ms[1]].usage_time_series[period]))
-                    
+            
+            # print(dynamicChanges)
+
             # Run relocation algorithm for each node in violations_stack
-            relocations = ra.handle_dynamic_changes_with_optimization(node_resource_availability, workloads, cpuCosts, latencies, self.weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
+            node_resource_availability = self._get_resource_availability()
+            relocations = ra.handle_dynamic_changes_with_latency(node_resource_availability, workloads, cpuCosts, latencies, self.weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
+            
+            allocation_cost = 0
+            for app_id, ms_id, _ in dynamicChanges:
+                allocation_cost += self.infrastructure.nodes_list[node_index[workloadAllocations[app_id][ms_id]]].emergency_allocation_cost
+            
+            total_cost += allocation_cost
+            
             self._clear_nodes()
             if not self._assign_scheme_to_nodes(assignment_scheme=workload_Allocations_int, prediction_scheme=workloads):
                 print("Invalid Assignment Scheme")
                 return simulation_overview
-            
+
             # Calculate new number_of_relocations
             number_of_relocations += relocations
 
         # repeat
 
-        return simulation_overview
+        return simulation_overview, total_cost

@@ -233,7 +233,8 @@ json_input = '''
     "telemetry": [
       {"cpu": "30.54999999795109", "ip": "23.23.23.7", "latency": "1.112", "monetarycost": "1.5", "name": "py-k8s-master"},
       {"cpu": "10.8500000005587935", "ip": "23.23.23.5", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-1"},
-      {"cpu": "6.399999998975545", "ip": "23.23.23.3", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-2"}
+      {"cpu": "6.399999998975545", "ip": "23.23.23.3", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-2"},
+      {"cpu": "6.399999998975545", "ip": "23.23.23.9", "latency": "1.08", "monetarycost": "1.5", "name": "py-k8s-worker-3"}
     ]
   }
 }
@@ -297,7 +298,9 @@ workload_latencies = [
 
 # Adapt the dynamic changes to affect different workloads
 dynamicChanges = [
-    (0, 0, 5), # Workload 0, Function 2 requires more CPU
+    (0, 0, 10), # Workload 0, Function 2 requires more CPU
+    (0, 1, 10),
+    (2, 0, 10),
 ]
 
 # Initialize variables for storing results
@@ -352,15 +355,15 @@ historical_relocations = {}
 # Weights for cost, latency, and relocations
 weights = {'cost': 1, 'latency': 1, 'relocation': 2}  # Example: prioritize minimizing relocations higher
 
-
-#relocations = handle_dynamic_changes(node_resource_availability, sortedWorkloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations)
-#print(f"Total microservice relocations due to dynamic changes: {relocations}")
-
-# relocations = handle_dynamic_changes_with_optimization(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
-
+print(node_resource_availability)
+# relocations = handle_dynamic_changes(node_resource_availability, sortedWorkloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations)
 # print(f"Total microservice relocations due to dynamic changes: {relocations}")
-# for i in range(numWorkloads):
-#     for j in range(numFunctions):
-#         print(f"Final allocation: Workload {i}, Function {j} is assigned to {workloadAllocations[i][j]}")
+
+relocations = handle_dynamic_changes_with_optimization(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
+
+print(f"Total microservice relocations due to dynamic changes: {relocations}")
+for i in range(numWorkloads):
+    for j in range(numFunctions):
+        print(f"Final allocation: Workload {i}, Function {j} is assigned to {workloadAllocations[i][j]}")
 
 
