@@ -16,6 +16,7 @@ from statistics import NormalDist
 
 
 def create_random_scheme(simulation):
+    # random.seed(10)
     scheme = []
     for app in simulation.applications_stack:
         array = np.random.randint(simulation.num_of_total_nodes, size=app.num_of_ms)
@@ -58,7 +59,7 @@ def calculate_volatility(time_series):
     return time_series_volatility
 
 def produce_workload(intensity, vol, workloads, vol_dict):
-    
+    # random.seed(10)
     intensity_dict = {'low': 2, 'medium': 7, 'high': 10}
     wl = np.zeros(len(workloads[0]))
     for i in range(intensity_dict[intensity]):
@@ -85,7 +86,6 @@ def create_wl(sigma, mu, lambd, users=100, duration_in_hours=12):
     urllc_df['end time'] = urllc_df['end time'].astype(int)
     
     return urllc_df  
-
 
 
 def compute_strike_price1(delta, texp, cp, vol, intr, spot):
@@ -115,4 +115,15 @@ def add_arrays(array1, array2):
                 res[i][j] += array1[i][j]
     return res
         
+def floyd_warshall(graph):
+    n = len(graph)
+    # stepping loop
+    for k in range(n):
+        # outer loop
+        for i in range(n):
+            # inner loop
+            for j in range(n):
+                # replace direct path with path through k if direct path is longer
+                graph[i][j] = min(graph[i][j], graph[i][k] + graph[k][j])
+    return graph
     

@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from collections import deque
 
 def find_suitable_nodes(node_resource_availability, cpu_req):
     return [node for node, available_cpu in node_resource_availability.items() if available_cpu >= cpu_req]
@@ -14,6 +15,13 @@ def min_weighted_cost(suitable_nodes, cpu_costs, latencies, weights, node_index)
     min_cost_index = np.argmin(costs)
     min_cost_node = suitable_nodes[min_cost_index]
     return costs[min_cost_index], min_cost_node
+
+def min_weighted_cost_sorted(suitable_nodes, cpu_costs, latencies, weights, node_index):
+    costs = weights[0] * np.array([cpu_costs[node] for node in suitable_nodes]) + \
+            weights[1] * np.array([latencies[node_index[node]] for node in suitable_nodes])
+    indices = np.argsort(costs)
+    sorted_nodes = [suitable_nodes[index] for index in indices]
+    return np.sort(costs), sorted_nodes
 
 def allocate_resources(node_resource_availability, node, cpu_req):
     node_resource_availability[node] -= cpu_req
@@ -51,7 +59,12 @@ def satisfies_latency_constraints2(workload_index, function_index, node, allocat
 
     return cumulative_latency <= max_latency
 
-
+def calculate_cumulative_latency(workload_index, function_index, node, allocations, workload_latencies, node_index):
+    cumulative_latency = 0
+    for i in range(function_index):
+        if allocations[i] is not None:
+            cumulative_latency += workload_latencies[workload_index][i, function_index] + workload_latencies[workload_index][function_index, i]
+    return cumulative_latency
 
 def backtrack_allocation(workload_index, function_index, node_resource_availability, workloads, workload_latencies, node_index, allocations, max_latency):
     """
@@ -91,37 +104,73 @@ def backtrack_allocation(workload_index, function_index, node_resource_availabil
 
     return False  # Unable to find a valid allocation for this function within constraints
 
+def satisfies_latency_constraints3(workload_index, function_index, node, workload_latencies, allocations, node_index, latencyMatrix, max_latency):
+    for i in range(function_index):
+        if allocations[workload_index][i] is not None:
+            if workload_latencies[workload_index][i, function_index] < latencyMatrix[node_index[allocations[workload_index][i]]][node]:
+                # print(f"Node {node} can't run App {workload_index}, Microservice {function_index} due to constraint with Microservice {i}, running on Node {allocations[workload_index][i]}")
+                # print(workload_latencies[workload_index][i, function_index], latencyMatrix[node_index[allocations[workload_index][i]]][node])
+                return False
+    return True
 
-def handle_dynamic_changes_with_latency(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, workload_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency):
-    relocations = 0
-    for change in dynamicChanges:
-        time_slot, func_index, new_cpu_req = change
-        current_allocation = workloadAllocations[time_slot]
-        
-        # Release current resources if allocated
-        if current_allocation[func_index] is not None:
-            node_resource_availability = free_resources(node_resource_availability, current_allocation[func_index], workloads[time_slot][func_index])
-            current_allocation[func_index] = None
-        
-        # Find a new allocation that satisfies both CPU and latency requirements
-        for node in find_suitable_nodes(node_resource_availability, new_cpu_req):
-            # Temporarily allocate to check latency constraints
-            current_allocation[func_index] = node
-            if satisfies_latency_constraints(time_slot, func_index, node, current_allocation, workload_latencies, node_index, max_latency):
-                # Commit the allocation if it satisfies latency constraints
-                node_resource_availability = allocate_resources(node_resource_availability, node, new_cpu_req)
-                workloadAllocations[time_slot][func_index] = node
-                relocations += 1
-                break
-            else:
-                # Undo temporary allocation if latency constraints are not satisfied
-                current_allocation[func_index] = None
-        
-        if current_allocation[func_index] is None:
-            # Failed to reallocate due to constraints; consider handling this scenario
-            print(f"Failed to reallocate Function {func_index} in Workload {time_slot} within CPU and latency constraints.")
-    
-    return relocations
+def satisfies_all_latency_constraints(workload_index, function_index, node, allocations, workload_latencies, node_index, latencyMatrix, max_latency):
+    for i in range(len(allocations)):
+        if allocations[i] is not None:
+            # print(node_index[allocations[i]])
+            # print(node)
+            if workload_latencies[workload_index][i, function_index] < latencyMatrix[node_index[allocations[i]]][node_index[node]]:
+                # print(f"Node {node} can't run App {workload_index}, Microservice {function_index} due to constraint with Microservice {i}, running on Node {allocations[workload_index][i]}")
+                # print(workload_latencies[workload_index][i, function_index], latencyMatrix[node_index[allocations[workload_index][i]]][node])
+                return False
+    return True
+
+def backtrack_allocation2(app, ms, suitable_nodes_per_function, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names):
+    if ms == 6:
+        # All microservices have been successfully assigned to nodes.
+        return True
+    for node in suitable_nodes_per_function[ms]:
+        # Check if this node can accommodate the current function's CPU requirement
+        node_i = node_index[node]
+        if can_allocate(node_resource_availability, node, workloads[app][ms]):
+            # Temporarily allocate the current function to this node
+            workloadAllocations[app][ms] = node
+            temp_resources = node_resource_availability[node]
+            node_resource_availability[node] -= workloads[app][ms]
+
+            # Check if this allocation satisfies the latency constraints
+            if satisfies_latency_constraints3(app, ms, node_i, app_latencies, workloadAllocations, node_index, latencyMatrix, max_latency):
+                # Recursively attempt to allocate the next function
+                if backtrack_allocation2(app, ms + 1, suitable_nodes_per_function, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names):
+                    # print("entered")
+                    return True  # Found a valid allocation for all subsequent functions
+            # Backtrack: undo the current allocation and try the next node
+            workloadAllocations[app][ms] = None
+            node_resource_availability[node] = temp_resources
+    return False
+
+def backtrack_allocation3(app, ms_index, suitable_nodes_per_function, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names, microservices):
+    if ms_index == len(microservices):
+        # All microservices have been successfully assigned to nodes.
+        return True
+    for node in suitable_nodes_per_function[microservices[ms_index]]:
+        # Check if this node can accommodate the current function's CPU requirement
+        node_i = node_index[node]
+        if can_allocate(node_resource_availability, node, workloads[app][microservices[ms_index]]):
+            # Temporarily allocate the current function to this node
+            workloadAllocations[app][microservices[ms_index]] = node
+            temp_resources = node_resource_availability[node]
+            node_resource_availability[node] -= workloads[app][microservices[ms_index]]
+
+            # Check if this allocation satisfies the latency constraints
+            if satisfies_latency_constraints3(app, microservices[ms_index], node_i, app_latencies, workloadAllocations, node_index, latencyMatrix, max_latency):
+                # Recursively attempt to allocate the next function
+                if backtrack_allocation3(app, ms_index + 1, suitable_nodes_per_function, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names, microservices):
+                    # print("entered")
+                    return True  # Found a valid allocation for all subsequent functions
+            # Backtrack: undo the current allocation and try the next node
+            workloadAllocations[app][microservices[ms_index]] = None
+            node_resource_availability[node] = temp_resources
+    return False
 
 
 def handle_dynamic_changes(node_resource_availability, sortedWorkloads, cpuCosts, latencies, weights, node_index, latencyMatrix, workloadAllocations, dynamicChanges):
@@ -153,7 +202,7 @@ def handle_dynamic_changes(node_resource_availability, sortedWorkloads, cpuCosts
 
 
 
-def handle_dynamic_changes_with_latency(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, workload_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency):
+def handle_dynamic_changes_with_latency(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, workload_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix):
     relocations = 0
     for change in dynamicChanges:
         time_slot, func_index, new_cpu_req = change
@@ -168,7 +217,8 @@ def handle_dynamic_changes_with_latency(node_resource_availability, workloads, c
         for node in find_suitable_nodes(node_resource_availability, new_cpu_req):
             # Temporarily allocate to check latency constraints
             current_allocation[func_index] = node
-            if satisfies_latency_constraints(time_slot, func_index, node, current_allocation, workload_latencies, node_index, max_latency):
+            # if satisfies_latency_constraints3(time_slot, func_index, node, current_allocation, workload_latencies, node_index, max_latency):
+            if satisfies_all_latency_constraints(time_slot, func_index, node, current_allocation, workload_latencies, node_index, latencyMatrix, max_latency):
                 # Commit the allocation if it satisfies latency constraints
                 node_resource_availability = allocate_resources(node_resource_availability, node, new_cpu_req)
                 workloadAllocations[time_slot][func_index] = node
@@ -190,7 +240,7 @@ def handle_dynamic_changes_with_optimization(node_resource_availability, workloa
     for change in dynamicChanges:
         time_slot, func_index, new_cpu_req = change
         current_allocations = workloadAllocations[time_slot]
-        
+
         # If the function is currently allocated, first try to adjust its resources without moving it
         if current_allocations[func_index] is not None:
             allocated_node = current_allocations[func_index]
@@ -222,7 +272,36 @@ def handle_dynamic_changes_with_optimization(node_resource_availability, workloa
     return relocations
 
 
-
+def handle_dynamic_changes_with_backtracking(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix, node_names):    
+    workloadAllocations_copy = workloadAllocations.copy()
+    
+    # Get microservices needing relocation in each app
+    ms_per_app = deque([[] for _ in range(len(app_latencies))])
+    workloads_copy = workloads.copy()
+    for app_id, ms_id, new_cpu_req in dynamicChanges:
+        ms_per_app[app_id].append((ms_id, new_cpu_req))
+        workloads_copy[app_id][ms_id] = new_cpu_req
+        
+    for app_id in range(len(app_latencies)):
+        suitable_nodes_per_ms = deque()
+        
+        for j in range(6):
+            suitableNodes = find_suitable_nodes(node_resource_availability, workloads_copy[app_id, j]) ### TODO: make it so first is always the current node
+            if suitableNodes:
+                min_costs, min_cost_nodes = min_weighted_cost_sorted(suitableNodes, cpuCosts, latencies, weights, node_index)
+                min_cost_nodes.insert(0, workloadAllocations[app_id][j])
+                suitable_nodes_per_ms.append(min_cost_nodes)
+            else:
+                print(f"No suitable node found for Application {app_id}, Microservice {ms_id}.")
+        
+        if not backtrack_allocation3(app_id, 0, suitable_nodes_per_ms, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names, ms_per_app[app_id]):
+            print(f"Could not assign Application {app_id} without extra allocations.")
+        
+        if not backtrack_allocation2(app_id, 0, suitable_nodes_per_ms, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names):
+            print(f"Could not assign Application {app_id} without extra allocations.")
+    relocations = workloadAllocations.size - np.count_nonzero(workloadAllocations==workloadAllocations_copy)    
+    
+    return relocations
 
 
 # # Json input with telemetry data
