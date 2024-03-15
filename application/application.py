@@ -21,13 +21,15 @@ class Application: # application/workload class, contains adjacency matrix of DA
         self.src_node_id = src_node_id
         
     def _create_DAG(self):
-        dag_matrix = np.zeros((self.num_of_ms, self.num_of_ms), dtype=np.int8)
+        # random.seed(10)
+        dag_matrix = np.zeros((self.num_of_ms, self.num_of_ms), dtype=np.int16)
         for i in range(self.num_of_ms):
-            for j in range(i, self.num_of_ms    ):
+            for j in range(i, self.num_of_ms):
                 if (i == j):
-                    dag_matrix[i][j] = 0
+                    dag_matrix[i][j] = 511
                 else:
-                    dag_matrix[i][j] = random.choice([0, np.random.uniform(5, 10)])
+                    dag_matrix[i][j] = random.choice([511, np.random.uniform(20, 150)])
+                    dag_matrix[j][i] = dag_matrix[i][j]
         self.dag_matrix = dag_matrix    
 
     def _create_ms(self, workloads, vol_dict):

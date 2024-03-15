@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import networkx as nx
+import functions
 
 # from collections import deque
 from Nodes import Node
@@ -15,25 +16,30 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
         self.src = src
 
     def _create_adj_matrix(self, adj_matrix): #creates adjacency matrix for graph
+        # random.seed(10)
+        # np.random.seed(10)
         if (len(adj_matrix) == 0): # and adj_matrix.shape[0] == self.num_of_nodes
             # generate matrix
-            matrix = np.zeros((self.num_of_nodes, self.num_of_nodes), dtype=np.int8)
+            matrix = np.zeros((self.num_of_nodes, self.num_of_nodes), dtype=np.int16)
             for i in range(self.edge[0], self.edge[1]):
                 for j in range(i, self.edge[1]):
                     if (i == j):
                         matrix[i][j] = 0
                     else:
-                        matrix[i][j] = random.choice([0, np.random.uniform(1,6)])
+                        matrix[i][j] = random.choice([511, np.random.uniform(1,6)])
                         matrix[j][i] = matrix[i][j]
                 for j in range(self.edge[1], self.fog[1]):
-                    matrix[i][j] = random.choice([0, np.random.uniform(20,31)])
+                    matrix[i][j] = random.choice([511, np.random.uniform(20,31)])
                     matrix[j][i] = matrix[i][j]
+                matrix[i][self.cloud-1] = 511
+                matrix[self.cloud-1][i] = 511
+                    
             for i in range(self.fog[0], self.fog[1]):
                 for j in range(i, self.fog[1]):
                     if (i == j):
                         matrix[i][j] = 0
                     else:
-                        matrix[i][j] = random.choice([0, np.random.uniform(10,21)])
+                        matrix[i][j] = random.choice([511, np.random.uniform(10,21)])
                         matrix[j][i] = matrix[i][j]                      
             
             for i in range(self.fog[0], self.fog[1]):
@@ -41,17 +47,18 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
                     if (i == j):
                         matrix[i][j] = 0
                     else:
-                        matrix[i][j] = np.random.uniform(10,20)
+                        matrix[i][j] = np.random.uniform(20,31)
                         matrix[j][i] = matrix[i][j]     
             for i in range(self.fog[0], self.fog[1]):
                 matrix[i][self.num_of_nodes-1] = np.random.uniform(50,100)
                 matrix[self.num_of_nodes-1][i] = matrix[i][self.num_of_nodes-1]
-            self.adj_matrix = matrix
+            self.adj_matrix = functions.floyd_warshall(matrix)
+            
         else: 
-            self.adj_matrix = adj_matrix
+            self.adj_matrix = functions.floyd_warshall(matrix)
 
     def _create_infrastructure(self): # initializes nodes
-       
+        # np.random.seed(10)
         nodes_list = []
         for i in range(self.edge[1]):
             
@@ -65,7 +72,7 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
 
         for i in range(self.fog[1]-self.edge[1]):
 
-            cpu_capacity = int(np.random.uniform(80,121))
+            cpu_capacity = int(np.random.uniform(60,101))
             ram_capacity = int(np.random.uniform(120,201))
             monetary_cost = np.random.uniform(1,1.5)
             latency = np.random.uniform(10, 50)
@@ -76,7 +83,7 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
         cpu_capacity = 500
         ram_capacity = 1000
         monetary_cost = 0.5
-        latency = 50
+        latency = 75
         
         cloud_node = Node(id = self.num_of_nodes-1, layer = 'Cloud', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
         nodes_list.append(cloud_node)
