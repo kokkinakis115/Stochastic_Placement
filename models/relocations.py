@@ -273,34 +273,41 @@ def handle_dynamic_changes_with_optimization(node_resource_availability, workloa
 
 
 def handle_dynamic_changes_with_backtracking(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix, node_names):    
-    workloadAllocations_copy = workloadAllocations.copy()
-    
-    # Get microservices needing relocation in each app
-    ms_per_app = deque([[] for _ in range(len(app_latencies))])
-    workloads_copy = workloads.copy()
-    for app_id, ms_id, new_cpu_req in dynamicChanges:
-        ms_per_app[app_id].append((ms_id, new_cpu_req))
-        workloads_copy[app_id][ms_id] = new_cpu_req
+    relocations = 0
+    if dynamicChanges:
+        workloadAllocations_copy = workloadAllocations.copy()
+        # print(np.count_nonzero(workloadAllocations==workloadAllocations_copy))
+        # Get microservices needing relocation in each app
+        ms_per_app = deque([[] for _ in range(len(app_latencies))])
+        workloads_copy = workloads.copy()
+        for app_id, ms_id, new_cpu_req in dynamicChanges:
+            # ms_per_app[app_id].append((ms_id, new_cpu_req))
+            ms_per_app[app_id].append(ms_id)
+            workloads_copy[app_id][ms_id] = new_cpu_req
+            
+        for app_id in range(len(app_latencies)):
+            suitable_nodes_per_ms = deque()
+            
+            for j in range(6):
+                suitableNodes = find_suitable_nodes(node_resource_availability, workloads_copy[app_id, j])
+                if suitableNodes:
+                    min_costs, min_cost_nodes = min_weighted_cost_sorted(suitableNodes, cpuCosts, latencies, weights, node_index)
+                    min_cost_nodes.insert(0, workloadAllocations[app_id][j]) # Put current as first
+                    suitable_nodes_per_ms.append(min_cost_nodes)
+                else:
+                    print(f"No suitable node found for Application {app_id}, Microservice {ms_id}.")
+                # print(min_cost_nodes)
+            # print(suitable_nodes_per_ms)
+            if not backtrack_allocation3(app_id, 0, suitable_nodes_per_ms, workloadAllocations, node_resource_availability, workloads_copy, node_index, app_latencies, max_latency, latencyMatrix, node_names, ms_per_app[app_id]):
+                print(f"Could not assign Application {app_id} without extra allocations.")
+            
+            if not backtrack_allocation2(app_id, 0, suitable_nodes_per_ms, workloadAllocations, node_resource_availability, workloads_copy, node_index, app_latencies, max_latency, latencyMatrix, node_names):
+                print(f"Could not assign Application {app_id}.")
         
-    for app_id in range(len(app_latencies)):
-        suitable_nodes_per_ms = deque()
-        
-        for j in range(6):
-            suitableNodes = find_suitable_nodes(node_resource_availability, workloads_copy[app_id, j]) ### TODO: make it so first is always the current node
-            if suitableNodes:
-                min_costs, min_cost_nodes = min_weighted_cost_sorted(suitableNodes, cpuCosts, latencies, weights, node_index)
-                min_cost_nodes.insert(0, workloadAllocations[app_id][j])
-                suitable_nodes_per_ms.append(min_cost_nodes)
-            else:
-                print(f"No suitable node found for Application {app_id}, Microservice {ms_id}.")
-        
-        if not backtrack_allocation3(app_id, 0, suitable_nodes_per_ms, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names, ms_per_app[app_id]):
-            print(f"Could not assign Application {app_id} without extra allocations.")
-        
-        if not backtrack_allocation2(app_id, 0, suitable_nodes_per_ms, workloadAllocations, node_resource_availability, workloads, node_index, app_latencies, max_latency, latencyMatrix, node_names):
-            print(f"Could not assign Application {app_id} without extra allocations.")
-    relocations = workloadAllocations.size - np.count_nonzero(workloadAllocations==workloadAllocations_copy)    
-    
+        # print(workloadAllocations)
+        # print(workloadAllocations_copy)
+        # exit()
+        relocations = workloadAllocations.size - np.count_nonzero(workloadAllocations==workloadAllocations_copy)
     return relocations
 
 
