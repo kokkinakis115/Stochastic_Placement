@@ -199,7 +199,7 @@ class Simulation:
         node_resource_availability = self._get_resource_availability()
         latencyMatrix = self.infrastructure.adj_matrix
         app_latencies = self._get_app_latencies()
-        workloadAllocations = [[None for _ in range(6)] for _ in range(self.number_of_applications)]
+        workloadAllocations = np.array([[None for _ in range(6)] for _ in range(self.number_of_applications)])
                 
         # Run the allocation using backtracking for each workload
         print("Initializing Allocation...")
@@ -241,10 +241,11 @@ class Simulation:
         total_latency = 0
         for app in range(self.number_of_applications):
             for ms1 in range(self.applications_stack[app].num_of_ms):
+                node1 = node_index[workloadAllocations[app][ms1]]
+                total_latency += self.infrastructure.nodes_list[node1].latency
                 for ms2 in range(self.applications_stack[app].num_of_ms):
+                    node2 = node_index[workloadAllocations[app][ms2]]
                     if app_latencies[app][ms1, ms2] < 500:
-                        node1 = node_index[workloadAllocations[app][ms1]]
-                        node2 = node_index[workloadAllocations[app][ms2]]
                         total_latency += latencyMatrix[node1][node2]
         latency_per_timeslot.append(total_latency)
         
@@ -271,7 +272,7 @@ class Simulation:
                 timeslot += 1
 
                 self._clear_nodes()
-                workloadAllocations = [[None for _ in range(6)] for _ in range(self.number_of_applications)]
+                workloadAllocations = np.array([[None for _ in range(6)] for _ in range(self.number_of_applications)])
                 node_resource_availability = self._get_resource_availability()
 
                 print(f"Initializing Allocation for timeslot #{timeslot}.")
@@ -317,10 +318,11 @@ class Simulation:
                 total_latency = 0
                 for app in range(self.number_of_applications):
                     for ms1 in range(self.applications_stack[app].num_of_ms):
+                        node1 = node_index[workloadAllocations[app][ms1]]
+                        total_latency += self.infrastructure.nodes_list[node1].latency
                         for ms2 in range(self.applications_stack[app].num_of_ms):
+                            node2 = node_index[workloadAllocations[app][ms2]]
                             if app_latencies[app][ms1, ms2] < 500:
-                                node1 = node_index[workloadAllocations[app][ms1]]
-                                node2 = node_index[workloadAllocations[app][ms2]]
                                 total_latency += latencyMatrix[node1][node2]
                 latency_per_timeslot.append(total_latency)
                 
@@ -344,18 +346,19 @@ class Simulation:
 
             # Run relocation algorithm for each node in violations_stack
             node_resource_availability = self._get_resource_availability()
-            relocations = ra.handle_dynamic_changes_with_latency(node_resource_availability, workloads, cpuCosts, latencies, self.weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix)
+            # relocations = ra.handle_dynamic_changes_with_latency(node_resource_availability, workloads, cpuCosts, latencies, self.weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix)
+
+            relocations = ra.handle_dynamic_changes_with_backtracking(node_resource_availability, workloads, cpuCosts, latencies, weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix, node_names)
             
-            # relocations = ra.handle_dynamic_changes_with_backtracking(node_resource_availability, workloads, cpuCosts, latencies, self.weights, node_index, app_latencies, workloadAllocations, dynamicChanges, historical_relocations, max_latency, latencyMatrix, node_names)
             # relocations = ra.handle_dynamic_changes_with_optimization(node_resource_availability, workloads, cpuCosts, latencies, self.weights, node_index, latencyMatrix, workloadAllocations, dynamicChanges, historical_relocations, max_latency)
-            
+
             # Calculate Extra Cost due to relocation
             allocation_cost = 0
             for app_id, ms_id, _ in dynamicChanges:
                 allocation_cost += self.infrastructure.nodes_list[node_index[workloadAllocations[app_id][ms_id]]].emergency_allocation_cost
-            
+
             total_cost += allocation_cost
-            
+
             self._clear_nodes()
             if not self._assign_scheme_to_nodes(assignment_scheme=workload_Allocations_int, prediction_scheme=workloads):
                 print("Invalid Assignment Scheme")
@@ -363,18 +366,19 @@ class Simulation:
 
             # Calculate new Number of Relocations
             number_of_relocations += relocations
-            
+
             # Calculate Latency
             total_latency = 0
             for app in range(self.number_of_applications):
                 for ms1 in range(self.applications_stack[app].num_of_ms):
+                    node1 = node_index[workloadAllocations[app][ms1]]
+                    total_latency += self.infrastructure.nodes_list[node1].latency
                     for ms2 in range(self.applications_stack[app].num_of_ms):
+                        node2 = node_index[workloadAllocations[app][ms2]]
                         if app_latencies[app][ms1, ms2] < 500:
-                            node1 = node_index[workloadAllocations[app][ms1]]
-                            node2 = node_index[workloadAllocations[app][ms2]]
                             total_latency += latencyMatrix[node1][node2]
             latency_per_timeslot.append(total_latency)
-            
+
             # Usage
             period_usage = self._calculate_period_usage(period)             
             usage['Real'].append(period_usage)
