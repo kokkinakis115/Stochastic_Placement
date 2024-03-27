@@ -24,7 +24,7 @@ class Node: # node class, we assume each node contains 1 machine, 3 types of nod
         self.latency = latency
         self.monetary_cost = monetary_cost
         self.emergency_allocation_cost = 10*monetary_cost
-        self.src_nodes_max_delays = [int(np.random.uniform(3,7)) if layer == 'Edge' else 100 for i in range(src_nodes)]
+        self.src_nodes_max_delays = [int(np.random.uniform(3,10)) if layer == 'Edge' else int(np.random.uniform(20,50)) if layer == 'Fog' else 100 for i in range(src_nodes)]
         self.ms_stack = deque()
 
     def __repr__(self):

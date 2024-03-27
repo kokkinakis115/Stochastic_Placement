@@ -66,21 +66,23 @@ class Infrastucture: #infrastructure class, contains list of all nodes and adjac
             ram_capacity = int(np.random.uniform(4,17))
             monetary_cost = np.random.uniform(2,3)
             latency = np.random.uniform(2, 10)
+            # latency = 5
             
             edge_node = Node(id = i, layer = 'Edge', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
             nodes_list.append(edge_node)
 
         for i in range(self.fog[1]-self.edge[1]):
 
-            cpu_capacity = int(np.random.uniform(60,101))
+            cpu_capacity = int(np.random.uniform(60,100))
             ram_capacity = int(np.random.uniform(120,201))
             monetary_cost = np.random.uniform(1,1.5)
-            latency = np.random.uniform(10, 50)
+            latency = np.random.uniform(25, 50)
+            # latency = 50
             
             fog_node = Node(id = i + self.edge[1], layer = 'Fog', cpu_capacity = cpu_capacity, ram_capacity = ram_capacity, latency = latency, monetary_cost = monetary_cost, src_nodes=self.src)
             nodes_list.append(fog_node)
 
-        cpu_capacity = 500
+        cpu_capacity = 1000
         ram_capacity = 1000
         monetary_cost = 0.5
         latency = 75
