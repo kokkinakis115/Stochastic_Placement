@@ -1,4 +1,4 @@
-import json
+# import json
 import numpy as np
 from collections import deque
 
@@ -276,7 +276,6 @@ def handle_dynamic_changes_with_backtracking(node_resource_availability, workloa
     relocations = 0
     if dynamicChanges:
         workloadAllocations_copy = workloadAllocations.copy()
-        # print(np.count_nonzero(workloadAllocations==workloadAllocations_copy))
         # Get microservices needing relocation in each app
         ms_per_app = deque([[] for _ in range(len(app_latencies))])
         workloads_copy = workloads.copy()
@@ -291,7 +290,7 @@ def handle_dynamic_changes_with_backtracking(node_resource_availability, workloa
             for j in range(6):
                 suitableNodes = find_suitable_nodes(node_resource_availability, workloads_copy[app_id, j])
                 if suitableNodes:
-                    min_costs, min_cost_nodes = min_weighted_cost_sorted(suitableNodes, cpuCosts, latencies, weights, node_index)
+                    min_costs, min_cost_nodes = min_weighted_cost_sorted(suitableNodes, cpuCosts, latencies[app_id], weights, node_index)
                     min_cost_nodes.insert(0, workloadAllocations[app_id][j]) # Put current as first
                     suitable_nodes_per_ms.append(min_cost_nodes)
                 else:
